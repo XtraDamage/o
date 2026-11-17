@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>мяу</title>
+
+    <!-- Вариативный шрифт Google Sans Flex со всеми осями -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,ROND@6..144,-10..0,25..151,1..1000,0..100&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* Класс вариативного шрифта строго по шаблону из исходного файла */
+        .google-sans-flex-wave {
+            font-family: "Google Sans Flex", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 400;
+            font-style: normal;
+            font-variation-settings:
+                "slnt" 0,
+                "wdth" 100,
+                "ROND" 0;
+        }
+
+        :root {
+            --bg-obsidian: #09090b;
+            --cookie-pink: #ff77b0;
+            --cookie-pink-pressed: #ff8abb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            background-color: var(--bg-obsidian);
+            font-family: "Google Sans Flex", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* WebGL холст генератора световых обоев Lumina Aura (статичен весь сеанс) */
+        #gl-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            display: block;
+        }
+
+        /* Полноэкранная минималистичная сцена Material 3 Expressive */
+        .md3-stage {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* Вертикальное окно сменяющихся строк Google Sans Flex Wave */
+        .wave-stack-viewport {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 18px;
+            transition: opacity 0.55s cubic-bezier(0.2, 0, 0, 1), transform 0.55s cubic-bezier(0.2, 0, 0, 1);
+            -webkit-mask-image: linear-gradient(
+                to bottom,
+                transparent 0%,
+                #000 18%,
+                #000 82%,
+                transparent 100%
+            );
+            mask-image: linear-gradient(
+                to bottom,
+                transparent 0%,
+                #000 18%,
+                #000 82%,
+                transparent 100%
+            );
+        }
+
+        .wave-stack-viewport.is-hidden {
+            opacity: 0;
+            transform: translateY(-16px) scale(0.95);
+            pointer-events: none;
+        }
+
+        /* Целая строка со словом */
+        .wave-row {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 0.92;
+            letter-spacing: -0.03em;
+            white-space: nowrap;
+            contain: layout style;
+            will-change: transform, font-variation-settings, color;
+        }
+
+        /* Скрытый эталон для точного замера ширины при максимальном wdth: 151, wght: 950 */
+        #text-probe {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            visibility: hidden;
+            pointer-events: none;
+            white-space: nowrap;
+            font-size: 100px;
+            letter-spacing: -0.03em;
+            font-variation-settings: "wght" 950, "slnt" 0, "wdth" 151, "ROND" 100;
+        }
+
+        /* Волнистый индикатор прогресса MD3 LinearWavyProgressIndicator */
+        .wavy-progress-wrapper {
+            width: min(82vw, 340px);
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: clamp(40px, 7vh, 68px);
+            transition: opacity 0.55s cubic-bezier(0.2, 0, 0, 1), transform 0.55s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .wavy-progress-wrapper.is-hidden {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.92);
+            pointer-events: none;
+        }
+
+        #wavy-canvas {
+            width: 100%;
+            height: 22px;
+            display: block;
+        }
+
+        /* Центральная кнопка MD3 Cookie (чисто розовая, без неона и рамок) */
+        .cookie-button {
+            position: relative;
+            width: clamp(164px, 40vw, 204px);
+            height: clamp(164px, 40vw, 204px);
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            touch-action: none;
+            will-change: transform;
+        }
+
+        .cookie-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            shape-rendering: geometricPrecision;
+            will-change: transform;
+        }
+
+        /* Контейнер взаимодействия: переключается с кнопки Cookie на два Liquid Glass сердечка */
+        .interaction-hub {
+            position: relative;
+            width: min(92vw, 380px);
+            height: clamp(200px, 44vw, 240px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cookie-button.is-hidden {
+            opacity: 0;
+            transform: scale(0.45) !important;
+            pointer-events: none;
+            transition: opacity 0.45s cubic-bezier(0.2, 0, 0, 1), transform 0.45s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        /* Сцена смешивания двух Liquid Glass сердечек в финале */
+        .hearts-arena {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.45s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .hearts-arena.is-active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Невидимые тактильные зоны захвата для перетягивания WebGL-сердечек */
+        .heart-hit-zone {
+            position: absolute;
+            width: 196px;
+            height: 196px;
+            border-radius: 50%;
+            cursor: grab;
+            touch-action: none;
+            will-change: transform;
+        }
+
+        .heart-hit-zone:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL холст генератора световых обоев Lumina Aura и оптического Liquid Glass -->
+    <canvas id="gl-canvas" aria-hidden="true"></canvas>
+
+    <main class="md3-stage">
+        <!-- Скрытый эталон для расчёта размера шрифта под самую широкую фразу -->
+        <span id="text-probe" class="google-sans-flex-wave" aria-hidden="true"></span>
+
+        <!-- Вертикальная лента слов с эффектом Google Sans Flex Wave -->
+        <div id="wave-stack" class="wave-stack-viewport" aria-live="polite"></div>
+
+        <!-- Волнистый индикатор прогресса Material 3 Expressive -->
+        <div id="wavy-wrapper" class="wavy-progress-wrapper">
+            <canvas id="wavy-canvas"></canvas>
+        </div>
+
+        <!-- Центральный узел взаимодействия: Cookie -> Два Liquid Glass сердечка -->
+        <div class="interaction-hub">
+            <!-- Центральная чисто розовая фигура MD3 Cookie -->
+            <button type="button"
+                    id="cookie-btn"
+                    class="cookie-button"
+                    aria-label="Удерживайте фигуру">
+                <svg class="cookie-svg" id="cookie-svg" viewBox="0 0 108 108" aria-hidden="true">
+                    <path id="cookie-path" fill="#ff77b0"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Финальная сцена: интерактивные зоны для перетягивания двух оптических Liquid Glass сердечек -->
+        <div id="hearts-arena" class="hearts-arena" aria-label="Смешайте розовое и голубое Liquid Glass сердечки">
+            <div id="heart-pink" class="heart-hit-zone" role="slider" aria-label="Розовое Liquid Glass сердце"></div>
+            <div id="heart-blue" class="heart-hit-zone" role="slider" aria-label="Голубое Liquid Glass сердце"></div>
+        </div>
+    </main>
+
+    <!-- Вершинный шейдер Lumina Aura -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+    </script>
+
+    <!-- Фрагментный шейдер Lumina Aura: оптическая каустика и световая аура -->
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform vec2 u_resolution;
+        uniform float u_time;
+
+        uniform vec2 u_offset;
+        uniform float u_scale;
+        uniform float u_aspect;
+        uniform float u_rotation;
+        uniform float u_morph;
+        uniform float u_seed;
+        uniform int u_shapeType;
+
+        uniform float u_focusAngle;
+        uniform float u_sharpness;
+        uniform float u_diffusion;
+        uniform float u_drift;
+
+        uniform vec3 u_bgColor;
+        uniform vec3 u_outerColor;
+        uniform vec3 u_midColor;
+        uniform vec3 u_coreColor;
+        uniform float u_intensity;
+        uniform float u_chromatic;
+
+        uniform float u_grain;
+        uniform float u_vignette;
+
+        mat2 rot2D(float a) {
+            float s = sin(a);
+            float c = cos(a);
+            return mat2(c, -s, s, c);
+        }
+
+        float smin(float a, float b, float k) {
+            float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+            return mix(b, a, h) - k * h * (1.0 - h);
+        }
+
+        float hash12(vec2 p) {
+            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.x + p3.y) * p3.z);
+        }
+
+        float valueNoise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            float a = hash12(i);
+            float b = hash12(i + vec2(1.0, 0.0));
+            float c = hash12(i + vec2(0.0, 1.0));
+            float d = hash12(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        float sdEllipseApprox(vec2 p, vec2 ab) {
+            vec2 q = p / ab;
+            float r = length(q);
+            vec2 grad = q / ab;
+            float gLen = max(length(grad), 1e-4);
+            return (r - 1.0) / gLen;
+        }
+
+        float sdOrganicAura(vec2 p, float radius, float morphAmt, float seed, float time) {
+            vec2 c1 = vec2(-0.48, -0.02) * radius;
+            vec2 c2 = vec2(0.12, -0.22) * radius;
+            vec2 c3 = vec2(0.24, 0.24) * radius;
+
+            float s1 = sin(seed * 6.283 + time * 0.6) * 0.14 * morphAmt;
+            float s2 = cos(seed * 9.424 + time * 0.5) * 0.14 * morphAmt;
+
+            c1 += vec2(s1, s2) * radius;
+            c2 += vec2(-s2 * 0.7, s1 * 0.8) * radius;
+            c3 += vec2(s1 * 0.6, -s2 * 0.9) * radius;
+
+            float d1 = length(p - c1) - radius * (0.42 + 0.08 * morphAmt);
+            float d2 = length(p - c2) - radius * (0.56 + 0.06 * morphAmt);
+            float d3 = length(p - c3) - radius * (0.58 + 0.10 * morphAmt);
+
+            float k = radius * (0.48 + 0.25 * morphAmt);
+            float d = smin(d1, d2, k);
+            d = smin(d, d3, k * 1.1);
+
+            if (morphAmt > 0.01) {
+                float angle = atan(p.y, p.x);
+                float wave = sin(angle * 3.0 + seed * 12.0 + time * 0.4) * 0.035
+                           + cos(angle * 2.0 - seed * 7.0) * 0.025;
+                d += wave * radius * morphAmt;
+            }
+            return d;
+        }
+
+        void main() {
+            float minDim = min(u_resolution.x, u_resolution.y);
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / minDim;
+
+            vec2 focusDir = vec2(cos(u_focusAngle), sin(u_focusAngle));
+            vec2 p = uv - u_offset;
+
+            float refSpan = max(u_scale * 1.15, 0.15);
+            float focusAlign = clamp(dot(p, focusDir) / refSpan, -1.2, 1.2);
+            float tDiff = smoothstep(0.85, -0.95, focusAlign);
+            float tDiffPow = pow(tDiff, 1.35);
+
+            vec2 plumeShift = focusDir * (u_drift * u_scale * 0.52 * pow(tDiff, 1.65));
+            vec2 pShape = p + plumeShift;
+            vec2 pRot = rot2D(-u_rotation) * pShape;
+
+            if (u_morph > 0.001 && u_shapeType != 1) {
+                float n = valueNoise(pRot * (3.2 / max(u_scale, 0.1)) + vec2(u_seed * 10.0, u_time * 0.25));
+                pRot += (n - 0.5) * u_scale * 0.16 * u_morph;
+            }
+
+            float dist = 0.0;
+            float interiorFill = 0.0;
+
+            if (u_shapeType == 0) {
+                vec2 ab = vec2(u_scale, u_scale * u_aspect);
+                float dEll = sdEllipseApprox(pRot, ab);
+                float rimHalfWidth = mix(0.0035, 0.022, tDiffPow) * (u_scale / 0.34);
+                dist = abs(dEll) - rimHalfWidth;
+            } else if (u_shapeType == 1) {
+                vec2 pAura = vec2(pRot.x, pRot.y / mix(0.75, 1.0, u_aspect));
+                dist = sdOrganicAura(pAura, u_scale, u_morph, u_seed, u_time);
+                interiorFill = smoothstep(0.015, -u_scale * 0.45, dist);
+            } else {
+                vec2 ab = vec2(u_scale, u_scale * u_aspect);
+                float dOuter = sdEllipseApprox(pRot, ab);
+                vec2 innerOffset = rot2D(-u_rotation) * (focusDir * u_scale * 0.14);
+                float dInner = sdEllipseApprox(pRot - innerOffset, ab * 0.86);
+                dist = max(dOuter, -dInner);
+                interiorFill = smoothstep(0.01, -u_scale * 0.16, dist) * 0.65;
+            }
+
+            float sharpSigma = mix(0.048, 0.0028, u_sharpness) * (u_scale / 0.34);
+            float softSigma = mix(0.04, 0.36, u_diffusion) * (u_scale / 0.34);
+            float localSigma = mix(sharpSigma, softSigma, tDiffPow);
+
+            float posDist = max(dist, 0.0);
+
+            float coreGlow = exp(-pow(posDist / max(localSigma * 0.42, 0.0018), 2.0));
+            if (u_shapeType == 1 || u_shapeType == 2) {
+                coreGlow = max(coreGlow, interiorFill * (1.0 - 0.38 * tDiffPow));
+            }
+
+            float midSigma = mix(sharpSigma * 2.4, softSigma * 0.95, pow(tDiff, 1.1));
+            float midGlow = exp(-posDist / max(midSigma, 0.004));
+            if (u_shapeType == 1) {
+                midGlow = max(midGlow, smoothstep(0.05, -u_scale * 0.2, dist));
+            }
+
+            float wideSigma = mix(sharpSigma * 5.0, softSigma * 1.55, pow(tDiff, 0.85));
+            float wideGlow = 1.0 / (1.0 + pow(posDist / max(wideSigma, 0.01), 1.75));
+            wideGlow *= mix(0.28, 1.0, pow(tDiff, 0.75));
+
+            vec3 col = u_bgColor;
+
+            float outerEnergy = wideGlow * 0.62 * u_intensity;
+            col = mix(col, u_outerColor, clamp(outerEnergy, 0.0, 1.0));
+
+            float midEnergy = pow(midGlow, 1.15) * 0.88 * u_intensity;
+            if (u_chromatic > 0.01) {
+                float rimBand = smoothstep(0.0, 0.45, midGlow) * (1.0 - smoothstep(0.45, 0.95, coreGlow));
+                vec3 rimTint = u_outerColor * 1.35 + vec3(0.18, -0.04, 0.08) * u_chromatic;
+                col = mix(col, max(rimTint, vec3(0.0)), clamp(rimBand * u_chromatic * 0.85, 0.0, 1.0));
+            }
+            col = mix(col, u_midColor, clamp(midEnergy, 0.0, 1.0));
+
+            float coreEnergy = pow(coreGlow, 1.25) * u_intensity;
+            col += u_coreColor * coreEnergy * 0.92;
+
+            col = col / (1.0 + col * 0.22);
+            col = mix(col, smoothstep(0.0, 1.0, col), 0.14);
+
+            vec2 vigUV = gl_FragCoord.xy / u_resolution.xy - 0.5;
+            float vig = 1.0 - dot(vigUV, vigUV) * u_vignette * 1.35;
+            col *= clamp(vig, 0.35, 1.05);
+
+            vec2 grainCoord = gl_FragCoord.xy * (1080.0 / max(minDim, 1.0));
+            float n1 = hash12(grainCoord + fract(u_seed * 71.3) * 100.0);
+            float n2 = hash12(grainCoord * 1.37 + vec2(17.1, 31.7) + fract(u_seed * 33.7) * 100.0);
+            float grainNoise = (n1 + n2 - 1.0);
+
+            col += grainNoise * u_grain;
+            col = clamp(col, 0.0, 1.0);
+
+            gl_FragColor = vec4(col, 1.0);
+        }
+    </script>
+
+    <!-- Фрагментный шейдер iOS 26 / Telegram Liquid Glass + точный би-дуговой контур классического сердца -->
+    <script id="glass-fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform sampler2D u_bgTex;
+        uniform vec2 u_resolution;
+        uniform float u_heartsAlpha;
+        uniform float u_blend;
+
+        uniform vec2 u_heart1Pos;
+        uniform vec2 u_heart2Pos;
+        uniform float u_heart1Scale;
+        uniform float u_heart2Scale;
+
+        float smin(float a, float b, float k) {
+            float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+            return mix(b, a, h) - k * h * (1.0 - h);
+        }
+
+        float cross2(vec2 a, vec2 b) {
+            return a.x * b.y - a.y * b.x;
+        }
+
+        // Точное евклидово расстояние от точки q до правой половины сердца:
+        // верхняя круглая доля и нижняя боковая дуга стыкуются по касательной на y = 0.35
+        float distToRightHeartBoundary(vec2 q) {
+            vec2 P_cleft = vec2(0.0, 0.461243);   // Верхний V-образный вырез
+            vec2 P_tip   = vec2(0.0, -0.76);      // Нижний кончик
+            vec2 T       = vec2(0.825, 0.35);     // Точка вертикальной касательной (максимальная ширина)
+
+            // 1. Верхняя пышная круглая доля (центр C1, радиус R1)
+            vec2 C1 = vec2(0.405, 0.35);
+            float R1 = 0.420;
+            vec2 vStart1 = P_cleft - C1;
+
+            vec2 w1 = q - C1;
+            float d1;
+            if (w1.y >= 0.0 && cross2(w1, vStart1) >= 0.0) {
+                d1 = abs(length(w1) - R1);
+            } else {
+                d1 = min(length(q - P_cleft), length(q - T));
+            }
+
+            // 2. Нижняя выпуклая боковая дуга (центр C2, радиус R2)
+            vec2 C2 = vec2(-0.334227, 0.35);
+            float R2 = 1.159227;
+            vec2 vEnd2 = P_tip - C2;
+
+            vec2 w2 = q - C2;
+            float d2;
+            if (w2.y <= 0.0 && cross2(vEnd2, w2) >= 0.0) {
+                d2 = abs(length(w2) - R2);
+            } else {
+                d2 = min(length(q - T), length(q - P_tip));
+            }
+
+            return min(d1, d2);
+        }
+
+        // Точный сплошной SDF классического сердца без разрывов и дубликатов
+        float sdMaterialHeart(vec2 p) {
+            p *= 0.90;
+
+            vec2 C1  = vec2(0.405, 0.35);
+            float R1 = 0.420;
+            vec2 C2  = vec2(-0.334227, 0.35);
+            float R2 = 1.159227;
+
+            vec2 q = vec2(abs(p.x), p.y);
+            bool inside = (q.y >= 0.35)
+                ? (length(q - C1) < R1)
+                : (length(q - C2) < R2);
+
+            float dist = distToRightHeartBoundary(q);
+            if (!inside && q.y > 0.25) {
+                dist = min(dist, distToRightHeartBoundary(vec2(-q.x, q.y)));
+            }
+
+            return (inside ? -dist : dist) / 0.90;
+        }
+
+        vec2 evalLiquidField(vec2 pxCoord) {
+            float d1 = sdMaterialHeart((pxCoord - u_heart1Pos) / u_heart1Scale) * u_heart1Scale;
+            float d2 = sdMaterialHeart((pxCoord - u_heart2Pos) / u_heart2Scale) * u_heart2Scale;
+
+            float k = mix(14.0, 56.0, u_blend);
+            float d = smin(d1, d2, k);
+            float w = clamp(0.5 + 0.5 * (d2 - d1) / max(k, 0.001), 0.0, 1.0);
+            return vec2(d, w);
+        }
+
+        // Профиль iOS 26 / Telegram Liquid Glass:
+        // плоское плато внутри и плавная выпуклая фаска только вдоль внешнего контура
+        float glassBevelHeight(float d, float bevelWidth) {
+            if (d >= 0.0) return 0.0;
+            float t = clamp(-d / bevelWidth, 0.0, 1.0);
+            return sqrt(max(0.0, 1.0 - (1.0 - t) * (1.0 - t)));
+        }
+
+        // Матовое размытие фона внутри стеклянной линзы (13-tap Gaussian disc)
+        vec3 sampleFrostedBg(vec2 uv, vec2 offsetUv, float blurPx) {
+            vec2 texel = 1.0 / u_resolution;
+            vec2 c = clamp(uv + offsetUv, 0.003, 0.997);
+
+            vec3 sum = texture2D(u_bgTex, c).rgb * 0.20;
+            vec2 r1 = texel * blurPx * 0.48;
+            vec2 r2 = texel * blurPx;
+
+            sum += texture2D(u_bgTex, clamp(c + vec2( r1.x,  0.0), 0.003, 0.997)).rgb * 0.10;
+            sum += texture2D(u_bgTex, clamp(c + vec2(-r1.x,  0.0), 0.003, 0.997)).rgb * 0.10;
+            sum += texture2D(u_bgTex, clamp(c + vec2( 0.0,  r1.y), 0.003, 0.997)).rgb * 0.10;
+            sum += texture2D(u_bgTex, clamp(c + vec2( 0.0, -r1.y), 0.003, 0.997)).rgb * 0.10;
+
+            sum += texture2D(u_bgTex, clamp(c + vec2( r2.x,  r2.y) * 0.707, 0.003, 0.997)).rgb * 0.10;
+            sum += texture2D(u_bgTex, clamp(c + vec2(-r2.x,  r2.y) * 0.707, 0.003, 0.997)).rgb * 0.10;
+            sum += texture2D(u_bgTex, clamp(c + vec2( r2.x, -r2.y) * 0.707, 0.003, 0.997)).rgb * 0.10;
+            sum += texture2D(u_bgTex, clamp(c + vec2(-r2.x, -r2.y) * 0.707, 0.003, 0.997)).rgb * 0.10;
+
+            return sum;
+        }
+
+        void main() {
+            vec2 uv = gl_FragCoord.xy / u_resolution;
+            vec3 bg = texture2D(u_bgTex, uv).rgb;
+
+            if (u_heartsAlpha <= 0.001) {
+                gl_FragColor = vec4(bg, 1.0);
+                return;
+            }
+
+            vec2 px = gl_FragCoord.xy;
+            vec2 field = evalLiquidField(px);
+            float d = field.x;
+            float w = field.y;
+
+            // Деликатная тень под стеклянной плашкой
+            float shadowDist = max(d + 3.0, 0.0);
+            float shadow = exp(-shadowDist * 0.065) * 0.42 * u_heartsAlpha;
+            vec3 color = bg * (1.0 - shadow);
+
+            float mask = smoothstep(1.25, -1.25, d) * u_heartsAlpha;
+            if (mask <= 0.001) {
+                gl_FragColor = vec4(color, 1.0);
+                return;
+            }
+
+            // Ширина краевой фаски (~24% от радиуса), центр остаётся плоским
+            float bevelWidth = max(u_heart1Scale, u_heart2Scale) * 0.24;
+            float eps = 1.5;
+            float hR = glassBevelHeight(evalLiquidField(px + vec2(eps, 0.0)).x, bevelWidth);
+            float hL = glassBevelHeight(evalLiquidField(px - vec2(eps, 0.0)).x, bevelWidth);
+            float hU = glassBevelHeight(evalLiquidField(px + vec2(0.0, eps)).x, bevelWidth);
+            float hD = glassBevelHeight(evalLiquidField(px - vec2(0.0, eps)).x, bevelWidth);
+
+            // Градиент высоты и нормаль: строго (0, 0, 1) в центре и крутой уклон на фаске
+            vec2 grad = vec2(hR - hL, hU - hD) / (2.0 * eps);
+            vec2 edgeNormal2D = -grad * bevelWidth;
+            vec3 N = normalize(vec3(edgeNormal2D * 1.45, 1.0));
+
+            // Коэффициент нахождения на изогнутой краевой фаске (0 в центре, 1 у самой кромки)
+            float edgeZone = smoothstep(-bevelWidth, -0.5, d);
+            float rimBand = pow(edgeZone, 1.55);
+
+            // Сильное преломление с радужным разносом RGB-каналов (хроматическая дисперсия iOS 26 / Telegram)
+            float bendPx = 34.0 * rimBand;
+            vec2 baseShift = edgeNormal2D * (bendPx / u_resolution);
+            vec2 dispVec = edgeNormal2D * ((11.5 * rimBand) / u_resolution);
+
+            float blurRadius = mix(11.0, 3.0, rimBand);
+            float r = sampleFrostedBg(uv, baseShift + dispVec * 1.15, blurRadius).r;
+            float g = sampleFrostedBg(uv, baseShift, blurRadius).g;
+            float b = sampleFrostedBg(uv, baseShift - dispVec * 1.15, blurRadius).b;
+            vec3 refracted = vec3(r, g, b);
+
+            // Смешивание розового, голубого и фиолетового оттенков стекла
+            vec3 pinkTint   = vec3(1.00, 0.34, 0.68);
+            vec3 blueTint   = vec3(0.24, 0.72, 1.00);
+            vec3 violetTint = vec3(0.68, 0.32, 1.00);
+
+            vec3 individualTint = mix(blueTint, pinkTint, w);
+            float bridgeMix = 1.0 - abs(w - 0.5) * 2.0;
+            float totalViolet = clamp(max(u_blend, bridgeMix * 0.85), 0.0, 1.0);
+            vec3 glassTint = mix(individualTint, violetTint, totalViolet);
+
+            // Матовое молочно-цветное заполнение внутри + чистая преломляющая фаска по краям
+            vec3 bodyColor = mix(refracted, glassTint, 0.24 * (1.0 - 0.35 * rimBand));
+            bodyColor += glassTint * (0.08 + 0.14 * rimBand);
+
+            // Спектральная радужная кайма на крутой фаске
+            float anglePhase = atan(N.y, N.x) * 2.0 + rimBand * 3.2;
+            vec3 prismBands = 0.5 + 0.5 * cos(anglePhase + vec3(0.0, 2.094, 4.188));
+            bodyColor += prismBands * pow(rimBand, 2.2) * 0.24;
+
+            // Тонкий световой ободок по периметру (specular rim lighting сверху-слева и снизу-справа)
+            vec2 rimDir = normalize(edgeNormal2D + vec2(1e-5));
+            float topLeftLight = max(dot(rimDir, normalize(vec2(-0.55, 0.83))), 0.0);
+            float bottomRightLight = max(dot(rimDir, normalize(vec2(0.55, -0.83))), 0.0);
+
+            float outerStroke = smoothstep(-2.4, -0.35, d);
+            float innerGloss = smoothstep(-bevelWidth * 0.85, -1.2, d) * (1.0 - outerStroke);
+
+            vec3 rimHighlight = vec3(1.0) * (0.18 + 0.72 * pow(topLeftLight, 1.4) + 0.42 * pow(bottomRightLight, 1.6));
+            vec3 finalGlass = bodyColor
+                + rimHighlight * outerStroke
+                + mix(vec3(1.0), glassTint, 0.35) * innerGloss * (0.14 + 0.22 * topLeftLight);
+
+            finalGlass = clamp(finalGlass, 0.0, 1.0);
+            gl_FragColor = vec4(mix(color, finalGlass, mask), 1.0);
+        }
+    </script>
+
+    <script type="module">
+        // =====================================================================
+        // 0. ВСТРОЕННЫЙ WEBGL ГЕНЕРАТОР СВЕТОВЫХ ОБОЕВ LUMINA AURA
+        //    + ОПТИЧЕСКИЙ ШЕЙДЕР LIQUID GLASS ДЛЯ ФИНАЛЬНЫХ СЕРДЕЧЕК
+        // =====================================================================
+        const glCanvas = document.getElementById('gl-canvas');
+        let gl = null;
+        let bgProgram = null;
+        let glassProgram = null;
+        let bgFramebuffer = null;
+        let bgTexture = null;
+        const bgUniforms = {};
+        const glassUniforms = {};
+        let bgTexWidth = 0;
+        let bgTexHeight = 0;
+
+        function hslToHex(h, s, l) {
+            s /= 100;
+            l /= 100;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => {
+                const k = (n + h / 30) % 12;
+                const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        function hexToRgbNorm(hex) {
+            const clean = hex.replace('#', '');
+            const num = parseInt(clean, 16);
+            return [
+                ((num >> 16) & 255) / 255,
+                ((num >> 8) & 255) / 255,
+                (num & 255) / 255
+            ];
+        }
+
+        // Генерация случайной световой сцены один раз на весь сеанс
+        function createSessionWallpaperState() {
+            const shapeType = Math.floor(Math.random() * 3);
+            const hue = Math.floor(Math.random() * 360);
+            const hueShift = (hue + (Math.random() > 0.5 ? 32 : -32) + 360) % 360;
+
+            return {
+                shapeType,
+                seed: Math.random(),
+                offsetX: Number(((Math.random() - 0.5) * 0.14).toFixed(3)),
+                offsetY: Number(((Math.random() - 0.5) * 0.14).toFixed(3)),
+                scale: Number((0.29 + Math.random() * 0.13).toFixed(2)),
+                aspect: Number((shapeType === 1 ? 0.78 + Math.random() * 0.2 : 0.54 + Math.random() * 0.28).toFixed(2)),
+                rotation: Math.round((Math.random() * 180) - 90),
+                morph: Number((shapeType === 1 ? 0.26 + Math.random() * 0.34 : 0.05 + Math.random() * 0.18).toFixed(2)),
+                focusAngle: Math.round((Math.random() * 360) - 180),
+                sharpness: Number((0.82 + Math.random() * 0.16).toFixed(2)),
+                diffusion: Number((0.70 + Math.random() * 0.34).toFixed(2)),
+                drift: Number((0.36 + Math.random() * 0.30).toFixed(2)),
+                bgColor: hslToHex(hue, 24 + Math.random() * 18, 5 + Math.random() * 2.5),
+                outerColor: hslToHex(hue, 62 + Math.random() * 22, 34 + Math.random() * 12),
+                midColor: hslToHex(hueShift, 70 + Math.random() * 20, 65 + Math.random() * 12),
+                coreColor: hslToHex(hueShift, 28, 96),
+                intensity: Number((1.12 + Math.random() * 0.16).toFixed(2)),
+                chromatic: Number((0.18 + Math.random() * 0.38).toFixed(2)),
+                grain: 0.044,
+                vignette: 0.26
+            };
+        }
+
+        const WALLPAPER_STATE = createSessionWallpaperState();
+
+        function compileShader(context, type, source) {
+            const shader = context.createShader(type);
+            context.shaderSource(shader, source);
+            context.compileShader(shader);
+            if (!context.getShaderParameter(shader, context.COMPILE_STATUS)) {
+                const info = context.getShaderInfoLog(shader);
+                context.deleteShader(shader);
+                throw new Error(info);
+            }
+            return shader;
+        }
+
+        function initLuminaWebGL() {
+            gl = glCanvas.getContext('webgl', {
+                preserveDrawingBuffer: true,
+                antialias: true,
+                alpha: false
+            }) || glCanvas.getContext('experimental-webgl', {
+                preserveDrawingBuffer: true
+            });
+
+            if (!gl) return false;
+
+            const vsSource = document.getElementById('vertex-shader').textContent;
+            const bgFsSource = document.getElementById('fragment-shader').textContent;
+            const glassFsSource = document.getElementById('glass-fragment-shader').textContent;
+
+            const vs1 = compileShader(gl, gl.VERTEX_SHADER, vsSource);
+            const fs1 = compileShader(gl, gl.FRAGMENT_SHADER, bgFsSource);
+            bgProgram = gl.createProgram();
+            gl.attachShader(bgProgram, vs1);
+            gl.attachShader(bgProgram, fs1);
+            gl.linkProgram(bgProgram);
+            if (!gl.getProgramParameter(bgProgram, gl.LINK_STATUS)) return false;
+
+            const vs2 = compileShader(gl, gl.VERTEX_SHADER, vsSource);
+            const fs2 = compileShader(gl, gl.FRAGMENT_SHADER, glassFsSource);
+            glassProgram = gl.createProgram();
+            gl.attachShader(glassProgram, vs2);
+            gl.attachShader(glassProgram, fs2);
+            gl.linkProgram(glassProgram);
+            if (!gl.getProgramParameter(glassProgram, gl.LINK_STATUS)) return false;
+
+            const buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                -1, -1,  1, -1, -1,  1,
+                -1,  1,  1, -1,  1,  1
+            ]), gl.STATIC_DRAW);
+
+            const posLoc1 = gl.getAttribLocation(bgProgram, 'a_position');
+            gl.enableVertexAttribArray(posLoc1);
+            gl.vertexAttribPointer(posLoc1, 2, gl.FLOAT, false, 0, 0);
+
+            const posLoc2 = gl.getAttribLocation(glassProgram, 'a_position');
+            gl.enableVertexAttribArray(posLoc2);
+            gl.vertexAttribPointer(posLoc2, 2, gl.FLOAT, false, 0, 0);
+
+            const bgUniformNames = [
+                'u_resolution', 'u_time',
+                'u_offset', 'u_scale', 'u_aspect', 'u_rotation', 'u_morph', 'u_seed', 'u_shapeType',
+                'u_focusAngle', 'u_sharpness', 'u_diffusion', 'u_drift',
+                'u_bgColor', 'u_outerColor', 'u_midColor', 'u_coreColor', 'u_intensity', 'u_chromatic',
+                'u_grain', 'u_vignette'
+            ];
+            for (const name of bgUniformNames) {
+                bgUniforms[name] = gl.getUniformLocation(bgProgram, name);
+            }
+
+            const glassUniformNames = [
+                'u_bgTex', 'u_resolution', 'u_heartsAlpha', 'u_blend',
+                'u_heart1Pos', 'u_heart2Pos', 'u_heart1Scale', 'u_heart2Scale'
+            ];
+            for (const name of glassUniformNames) {
+                glassUniforms[name] = gl.getUniformLocation(glassProgram, name);
+            }
+
+            bgFramebuffer = gl.createFramebuffer();
+            bgTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+            return true;
+        }
+
+        function bakeSessionWallpaperTexture() {
+            if (!gl || !bgProgram) return;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const width = Math.floor(window.innerWidth * dpr);
+            const height = Math.floor(window.innerHeight * dpr);
+
+            if (glCanvas.width !== width || glCanvas.height !== height || bgTexWidth !== width || bgTexHeight !== height) {
+                glCanvas.width = width;
+                glCanvas.height = height;
+                bgTexWidth = width;
+                bgTexHeight = height;
+
+                gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+                gl.bindFramebuffer(gl.FRAMEBUFFER, bgFramebuffer);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bgTexture, 0);
+            } else {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, bgFramebuffer);
+            }
+
+            gl.viewport(0, 0, width, height);
+            gl.useProgram(bgProgram);
+            gl.uniform2f(bgUniforms.u_resolution, width, height);
+            gl.uniform1f(bgUniforms.u_time, 0.0);
+
+            gl.uniform2f(bgUniforms.u_offset, WALLPAPER_STATE.offsetX, WALLPAPER_STATE.offsetY);
+            gl.uniform1f(bgUniforms.u_scale, WALLPAPER_STATE.scale);
+            gl.uniform1f(bgUniforms.u_aspect, WALLPAPER_STATE.aspect);
+            gl.uniform1f(bgUniforms.u_rotation, (WALLPAPER_STATE.rotation * Math.PI) / 180);
+            gl.uniform1f(bgUniforms.u_morph, WALLPAPER_STATE.morph);
+            gl.uniform1f(bgUniforms.u_seed, WALLPAPER_STATE.seed);
+            gl.uniform1i(bgUniforms.u_shapeType, WALLPAPER_STATE.shapeType);
+
+            gl.uniform1f(bgUniforms.u_focusAngle, (WALLPAPER_STATE.focusAngle * Math.PI) / 180);
+            gl.uniform1f(bgUniforms.u_sharpness, WALLPAPER_STATE.sharpness);
+            gl.uniform1f(bgUniforms.u_diffusion, WALLPAPER_STATE.diffusion);
+            gl.uniform1f(bgUniforms.u_drift, WALLPAPER_STATE.drift);
+
+            const bg = hexToRgbNorm(WALLPAPER_STATE.bgColor);
+            const outer = hexToRgbNorm(WALLPAPER_STATE.outerColor);
+            const mid = hexToRgbNorm(WALLPAPER_STATE.midColor);
+            const core = hexToRgbNorm(WALLPAPER_STATE.coreColor);
+
+            gl.uniform3f(bgUniforms.u_bgColor, bg[0], bg[1], bg[2]);
+            gl.uniform3f(bgUniforms.u_outerColor, outer[0], outer[1], outer[2]);
+            gl.uniform3f(bgUniforms.u_midColor, mid[0], mid[1], mid[2]);
+            gl.uniform3f(bgUniforms.u_coreColor, core[0], core[1], core[2]);
+            gl.uniform1f(bgUniforms.u_intensity, WALLPAPER_STATE.intensity);
+            gl.uniform1f(bgUniforms.u_chromatic, WALLPAPER_STATE.chromatic);
+
+            gl.uniform1f(bgUniforms.u_grain, WALLPAPER_STATE.grain);
+            gl.uniform1f(bgUniforms.u_vignette, WALLPAPER_STATE.vignette);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+
+        function renderCompositeFrame(heartsAlpha, p1X, p1Y, s1, p2X, p2Y, s2, blend) {
+            if (!gl || !glassProgram) return;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+            gl.useProgram(glassProgram);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+            gl.uniform1i(glassUniforms.u_bgTex, 0);
+
+            gl.uniform2f(glassUniforms.u_resolution, glCanvas.width, glCanvas.height);
+            gl.uniform1f(glassUniforms.u_heartsAlpha, heartsAlpha);
+            gl.uniform1f(glassUniforms.u_blend, blend);
+
+            gl.uniform2f(glassUniforms.u_heart1Pos, p1X, p1Y);
+            gl.uniform2f(glassUniforms.u_heart2Pos, p2X, p2Y);
+            gl.uniform1f(glassUniforms.u_heart1Scale, s1);
+            gl.uniform1f(glassUniforms.u_heart2Scale, s2);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        if (initLuminaWebGL()) {
+            bakeSessionWallpaperTexture();
+            renderCompositeFrame(0, 0, 0, 1, 0, 0, 1, 0);
+        }
+
+        // =====================================================================
+        // 1. MATERIAL 3 EXPRESSIVE LOADING INDICATOR — SEAMLESS LIQUID ENGINE
+        // =====================================================================
+        const NUM_SAMPLES = 360;
+        const TWO_PI = Math.PI * 2;
+        const DEG_TO_RAD = Math.PI / 180;
+        const SVG_CENTER = 54;
+        const OUTER_RADIUS = 53.0;
+
+        const NUM_SHAPES = 7;
+        const STAGE_DURATION_MS = 4666.6667 / NUM_SHAPES;
+        const SUB_LOOP_MS = STAGE_DURATION_MS * NUM_SHAPES;
+        const GLOBAL_SPIN_DEG_PER_MS = 360 / SUB_LOOP_MS;
+        const INITIAL_WARMUP_MS = STAGE_DURATION_MS * 0.86;
+
+        const STIFFNESS_MS2 = 165 / 1e6;
+        const DAMPING_MS = (2 * 0.52 * Math.sqrt(165)) / 1000;
+
+        function smoothPolarTable(table, passes, normalizePeak) {
+            let src = new Float64Array(table);
+            let dst = new Float64Array(NUM_SAMPLES);
+
+            for (let p = 0; p < passes; p++) {
+                for (let i = 0; i < NUM_SAMPLES; i++) {
+                    const im2 = (i - 2 + NUM_SAMPLES) % NUM_SAMPLES;
+                    const im1 = (i - 1 + NUM_SAMPLES) % NUM_SAMPLES;
+                    const ip1 = (i + 1) % NUM_SAMPLES;
+                    const ip2 = (i + 2) % NUM_SAMPLES;
+                    dst[i] =
+                        (src[im2] + 4 * src[im1] + 6 * src[i] + 4 * src[ip1] + src[ip2]) / 16;
+                }
+                const tmp = src;
+                src = dst;
+                dst = tmp;
+            }
+
+            if (normalizePeak) {
+                let maxR = 0;
+                for (let i = 0; i < NUM_SAMPLES; i++) {
+                    if (src[i] > maxR) maxR = src[i];
+                }
+                if (maxR > 1e-6) {
+                    const scale = OUTER_RADIUS / maxR;
+                    for (let i = 0; i < NUM_SAMPLES; i++) {
+                        src[i] *= scale;
+                    }
+                }
+            }
+
+            return src;
+        }
+
+        function buildRoundedPolygonPrimitives(vertices) {
+            const count = vertices.length;
+            const corners = new Array(count);
+
+            for (let i = 0; i < count; i++) {
+                const prev = vertices[(i - 1 + count) % count];
+                const curr = vertices[i];
+                const next = vertices[(i + 1) % count];
+
+                const v1x = prev.x - curr.x;
+                const v1y = prev.y - curr.y;
+                const len1 = Math.hypot(v1x, v1y);
+                const u1x = v1x / len1;
+                const u1y = v1y / len1;
+
+                const v2x = next.x - curr.x;
+                const v2y = next.y - curr.y;
+                const len2 = Math.hypot(v2x, v2y);
+                const u2x = v2x / len2;
+                const u2y = v2y / len2;
+
+                const dot = Math.max(-1, Math.min(1, u1x * u2x + u1y * u2y));
+                const halfAlpha = Math.acos(dot) * 0.5;
+                const tanHalf = Math.tan(halfAlpha);
+                const sinHalf = Math.sin(halfAlpha);
+
+                const maxOffset = 0.49 * Math.min(len1, len2);
+                let distAlongEdge = tanHalf > 1e-6 ? curr.r / tanHalf : 0;
+                if (distAlongEdge > maxOffset) {
+                    distAlongEdge = maxOffset;
+                }
+                const actualRadius = distAlongEdge * tanHalf;
+
+                const t1x = curr.x + u1x * distAlongEdge;
+                const t1y = curr.y + u1y * distAlongEdge;
+                const t2x = curr.x + u2x * distAlongEdge;
+                const t2y = curr.y + u2y * distAlongEdge;
+
+                let bx = u1x + u2x;
+                let by = u1y + u2y;
+                const bLen = Math.hypot(bx, by) || 1;
+                bx /= bLen;
+                by /= bLen;
+
+                const distToCenter = sinHalf > 1e-6 ? actualRadius / sinHalf : 0;
+                const cx = curr.x + bx * distToCenter;
+                const cy = curr.y + by * distToCenter;
+
+                const a1 = Math.atan2(t1y - cy, t1x - cx);
+                const a2 = Math.atan2(t2y - cy, t2x - cx);
+
+                const cross = u1x * u2y - u1y * u2x;
+                let da = a2 - a1;
+                if (cross < 0) {
+                    while (da <= 0) da += TWO_PI;
+                    while (da > Math.PI + 1e-5) da -= TWO_PI;
+                } else {
+                    while (da >= 0) da -= TWO_PI;
+                    while (da < -Math.PI - 1e-5) da += TWO_PI;
+                }
+
+                corners[i] = {
+                    t1x,
+                    t1y,
+                    t2x,
+                    t2y,
+                    cx,
+                    cy,
+                    radius: actualRadius,
+                    a1,
+                    da
+                };
+            }
+
+            const segments = [];
+            const arcs = [];
+
+            for (let i = 0; i < count; i++) {
+                const c = corners[i];
+                const nextC = corners[(i + 1) % count];
+                if (c.radius > 1e-5) {
+                    arcs.push(c);
+                }
+                segments.push({
+                    ax: c.t2x,
+                    ay: c.t2y,
+                    bx: nextC.t1x,
+                    by: nextC.t1y
+                });
+            }
+
+            return { segments, arcs };
+        }
+
+        function isAngleInArc(angle, a1, da) {
+            const eps = 1e-5;
+            if (da >= 0) {
+                let diff = (angle - a1) % TWO_PI;
+                if (diff < -eps) diff += TWO_PI;
+                return diff >= -eps && diff <= da + eps;
+            } else {
+                let diff = (angle - a1) % TWO_PI;
+                if (diff > eps) diff -= TWO_PI;
+                return diff <= eps && diff >= da - eps;
+            }
+        }
+
+        function raycastRoundedPolygon(primitives, theta) {
+            const dx = Math.cos(theta);
+            const dy = Math.sin(theta);
+            let minT = Infinity;
+
+            const segments = primitives.segments;
+            for (let i = 0; i < segments.length; i++) {
+                const seg = segments[i];
+                const ex = seg.bx - seg.ax;
+                const ey = seg.by - seg.ay;
+                const denom = dx * ey - dy * ex;
+                if (Math.abs(denom) > 1e-10) {
+                    const t = (seg.ax * ey - seg.ay * ex) / denom;
+                    const s = (seg.ax * dy - seg.ay * dx) / denom;
+                    if (t > 0 && s >= -1e-6 && s <= 1 + 1e-6 && t < minT) {
+                        minT = t;
+                    }
+                }
+            }
+
+            const arcs = primitives.arcs;
+            for (let i = 0; i < arcs.length; i++) {
+                const arc = arcs[i];
+                const b = arc.cx * dx + arc.cy * dy;
+                const c = arc.cx * arc.cx + arc.cy * arc.cy - arc.radius * arc.radius;
+                const disc = b * b - c;
+                if (disc >= 0) {
+                    const sqrtDisc = Math.sqrt(disc);
+                    const t1 = b - sqrtDisc;
+                    const t2 = b + sqrtDisc;
+
+                    if (t1 > 0 && t1 < minT) {
+                        const hitAng1 = Math.atan2(t1 * dy - arc.cy, t1 * dx - arc.cx);
+                        if (isAngleInArc(hitAng1, arc.a1, arc.da)) {
+                            minT = t1;
+                        }
+                    }
+                    if (t2 > 0 && t2 < minT) {
+                        const hitAng2 = Math.atan2(t2 * dy - arc.cy, t2 * dx - arc.cx);
+                        if (isAngleInArc(hitAng2, arc.a1, arc.da)) {
+                            minT = t2;
+                        }
+                    }
+                }
+            }
+
+            return Number.isFinite(minT) ? minT : 45;
+        }
+
+        function samplePolygonTable(vertices) {
+            const primitives = buildRoundedPolygonPrimitives(vertices);
+            const table = new Float64Array(NUM_SAMPLES);
+            for (let i = 0; i < NUM_SAMPLES; i++) {
+                const theta = (i * TWO_PI) / NUM_SAMPLES;
+                table[i] = raycastRoundedPolygon(primitives, theta);
+            }
+            return table;
+        }
+
+        function createSunnyTable() {
+            const lobes = 8;
+            const totalVertices = lobes * 2;
+            const outerR = OUTER_RADIUS;
+            const innerR = OUTER_RADIUS * 0.80;
+            const outerRounding = OUTER_RADIUS * 0.48;
+            const innerRounding = OUTER_RADIUS * 0.18;
+            const vertices = [];
+
+            for (let k = 0; k < totalVertices; k++) {
+                const angle = (-90 + k * (360 / totalVertices)) * DEG_TO_RAD;
+                const isInner = k % 2 === 0;
+                const r = isInner ? innerR : outerR;
+                vertices.push({
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    r: isInner ? innerRounding : outerRounding
+                });
+            }
+            return smoothPolarTable(samplePolygonTable(vertices), 2, true);
+        }
+
+        function createOvalTable() {
+            const rx = OUTER_RADIUS * 0.74;
+            const ry = OUTER_RADIUS * 0.99;
+            const table = new Float64Array(NUM_SAMPLES);
+            for (let i = 0; i < NUM_SAMPLES; i++) {
+                const theta = (i * TWO_PI) / NUM_SAMPLES;
+                const cosT = Math.cos(theta);
+                const sinT = Math.sin(theta);
+                table[i] = (rx * ry) / Math.hypot(ry * cosT, rx * sinT);
+            }
+            return table;
+        }
+
+        function createPentagonTable() {
+            const sides = 5;
+            const radius = OUTER_RADIUS;
+            const cornerRounding = OUTER_RADIUS * 0.34;
+            const vertices = [];
+
+            for (let k = 0; k < sides; k++) {
+                const angle = (-90 + k * 72) * DEG_TO_RAD;
+                vertices.push({
+                    x: Math.cos(angle) * radius,
+                    y: Math.sin(angle) * radius,
+                    r: cornerRounding
+                });
+            }
+            return smoothPolarTable(samplePolygonTable(vertices), 2, true);
+        }
+
+        function createCookie9SidedTable() {
+            const lobes = 9;
+            const totalVertices = lobes * 2;
+            const outerR = OUTER_RADIUS;
+            const innerR = OUTER_RADIUS * 0.80;
+            const outerRounding = OUTER_RADIUS * 0.48;
+            const innerRounding = OUTER_RADIUS * 0.18;
+            const vertices = [];
+
+            for (let k = 0; k < totalVertices; k++) {
+                const angle = (-90 + k * (360 / totalVertices)) * DEG_TO_RAD;
+                const isOuter = k % 2 === 0;
+                const r = isOuter ? outerR : innerR;
+                vertices.push({
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    r: isOuter ? outerRounding : innerRounding
+                });
+            }
+            return smoothPolarTable(samplePolygonTable(vertices), 2, true);
+        }
+
+        function createPillTable() {
+            const halfW = OUTER_RADIUS * 0.96;
+            const halfH = OUTER_RADIUS * 0.76;
+            const vertices = [
+                { x: -halfW, y: -halfH, r: halfH },
+                { x: halfW, y: -halfH, r: halfH },
+                { x: halfW, y: halfH, r: halfH },
+                { x: -halfW, y: halfH, r: halfH }
+            ];
+            return smoothPolarTable(samplePolygonTable(vertices), 2, true);
+        }
+
+        function createCookie4SidedTable() {
+            const lobes = 4;
+            const totalVertices = lobes * 2;
+            const outerR = OUTER_RADIUS;
+            const innerR = OUTER_RADIUS * 0.69;
+            const outerRounding = OUTER_RADIUS * 0.48;
+            const innerRounding = OUTER_RADIUS * 0.36;
+            const vertices = [];
+
+            for (let k = 0; k < totalVertices; k++) {
+                const angle = (-90 + k * (360 / totalVertices)) * DEG_TO_RAD;
+                const isOuter = k % 2 === 0;
+                const r = isOuter ? outerR : innerR;
+                vertices.push({
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    r: isOuter ? outerRounding : innerRounding
+                });
+            }
+            return smoothPolarTable(samplePolygonTable(vertices), 4, true);
+        }
+
+        function createSoftBurstTable() {
+            const points = 10;
+            const totalVertices = points * 2;
+            const outerR = OUTER_RADIUS;
+            const innerR = OUTER_RADIUS * 0.71;
+            const outerRounding = OUTER_RADIUS * 0.16;
+            const innerRounding = OUTER_RADIUS * 0.14;
+            const vertices = [];
+
+            for (let k = 0; k < totalVertices; k++) {
+                const angle = (-90 + k * (360 / totalVertices)) * DEG_TO_RAD;
+                const isInner = k % 2 === 0;
+                const r = isInner ? innerR : outerR;
+                vertices.push({
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    r: isInner ? innerRounding : outerRounding
+                });
+            }
+            return smoothPolarTable(samplePolygonTable(vertices), 1, true);
+        }
+
+        const SHAPES = [
+            { name: 'Sunny', table: createSunnyTable() },
+            { name: 'Oval', table: createOvalTable() },
+            { name: 'Pentagon', table: createPentagonTable() },
+            { name: 'Cookie9Sided', table: createCookie9SidedTable() },
+            { name: 'Pill', table: createPillTable() },
+            { name: 'Cookie4Sided', table: createCookie4SidedTable() },
+            { name: 'SoftBurst', table: createSoftBurstTable() }
+        ];
+
+        const COS_TABLE = new Float64Array(NUM_SAMPLES);
+        const SIN_TABLE = new Float64Array(NUM_SAMPLES);
+        for (let i = 0; i < NUM_SAMPLES; i++) {
+            const theta = (i * TWO_PI) / NUM_SAMPLES;
+            COS_TABLE[i] = Math.cos(theta);
+            SIN_TABLE[i] = Math.sin(theta);
+        }
+
+        const px = new Float64Array(NUM_SAMPLES);
+        const py = new Float64Array(NUM_SAMPLES);
+
+        function samplePolarContinuous(table, indexFloat) {
+            let wrapped = indexFloat % NUM_SAMPLES;
+            if (wrapped < 0) wrapped += NUM_SAMPLES;
+            const i0 = wrapped | 0;
+            const i1 = (i0 + 1) % NUM_SAMPLES;
+            const frac = wrapped - i0;
+            return table[i0] + (table[i1] - table[i0]) * frac;
+        }
+
+        function buildSmoothClosedSvgPath() {
+            const n = NUM_SAMPLES;
+            const parts = new Array(n + 2);
+
+            const x0 = px[0];
+            const y0 = py[0];
+            parts[0] = `M${x0.toFixed(2)} ${y0.toFixed(2)}`;
+
+            for (let i = 0; i < n; i++) {
+                const iPrev = (i - 1 + n) % n;
+                const iNext = (i + 1) % n;
+                const iNext2 = (i + 2) % n;
+
+                const p1x = px[i];
+                const p1y = py[i];
+                const p2x = px[iNext];
+                const p2y = py[iNext];
+
+                const cp1x = p1x + (p2x - px[iPrev]) / 6;
+                const cp1y = p1y + (p2y - py[iPrev]) / 6;
+                const cp2x = p2x - (px[iNext2] - p1x) / 6;
+                const cp2y = p2y - (py[iNext2] - p1y) / 6;
+
+                parts[i + 1] =
+                    `C${cp1x.toFixed(2)} ${cp1y.toFixed(2)},` +
+                    `${cp2x.toFixed(2)} ${cp2y.toFixed(2)},` +
+                    `${p2x.toFixed(2)} ${p2y.toFixed(2)}`;
+            }
+
+            parts[n + 1] = 'Z';
+            return parts.join('');
+        }
+
+        const cookiePathEl = document.getElementById('cookie-path');
+
+        let currentShapeIndex = 0;
+        let fromTable = new Float64Array(SHAPES[0].table);
+        let targetTable = SHAPES[0].table;
+        const currentMorphedTable = new Float64Array(SHAPES[0].table);
+
+        const morphSpring = { value: 1, velocity: 0, target: 1 };
+        const turnSpring = { value: 0, velocity: 0, target: 0 };
+
+        let simTimeMs = 0;
+        let globalSpinMs = 0;
+        let nextStageTriggerMs = STAGE_DURATION_MS;
+
+        function stepSimulation(deltaMs, advanceSchedule) {
+            let remaining = deltaMs;
+
+            while (remaining > 1e-6) {
+                const step = remaining > 1 ? 1 : remaining;
+                remaining -= step;
+
+                if (advanceSchedule) {
+                    simTimeMs += step;
+                    globalSpinMs += step;
+
+                    if (simTimeMs >= nextStageTriggerMs - 1e-6) {
+                        nextStageTriggerMs += STAGE_DURATION_MS;
+
+                        const uSnap = morphSpring.value;
+                        const oneMinusUSnap = 1 - uSnap;
+                        for (let i = 0; i < NUM_SAMPLES; i++) {
+                            currentMorphedTable[i] =
+                                oneMinusUSnap * fromTable[i] + uSnap * targetTable[i];
+                        }
+                        fromTable.set(currentMorphedTable);
+
+                        currentShapeIndex = (currentShapeIndex + 1) % NUM_SHAPES;
+                        targetTable = SHAPES[currentShapeIndex].table;
+
+                        morphSpring.value = 0;
+                        morphSpring.velocity *= 0.18;
+                        turnSpring.target += 90;
+                    }
+                }
+
+                const morphAccel =
+                    STIFFNESS_MS2 * (morphSpring.target - morphSpring.value) -
+                    DAMPING_MS * morphSpring.velocity;
+                morphSpring.velocity += morphAccel * step;
+                morphSpring.value += morphSpring.velocity * step;
+
+                const turnAccel =
+                    STIFFNESS_MS2 * (turnSpring.target - turnSpring.value) -
+                    DAMPING_MS * turnSpring.velocity;
+                turnSpring.velocity += turnAccel * step;
+                turnSpring.value += turnSpring.velocity * step;
+            }
+        }
+
+        function renderCurrentState() {
+            const u = morphSpring.value;
+            const oneMinusU = 1 - u;
+
+            const speedNorm = Math.min(1, Math.abs(morphSpring.velocity) * 145);
+            const globalSpinDeg = globalSpinMs * GLOBAL_SPIN_DEG_PER_MS;
+            const totalRotationDeg = globalSpinDeg + turnSpring.value - 54.0;
+            const sampleShift = totalRotationDeg * (NUM_SAMPLES / 360);
+            const volumeFactor = 1 + 0.02 * speedNorm;
+
+            for (let i = 0; i < NUM_SAMPLES; i++) {
+                const swirlDeg = 2.6 * speedNorm * Math.sin((i * 2 * TWO_PI) / NUM_SAMPLES);
+                const shiftedIdx = i - sampleShift + swirlDeg;
+
+                const rPrev = samplePolarContinuous(fromTable, shiftedIdx);
+                const rCurr = samplePolarContinuous(targetTable, shiftedIdx);
+                const r = (oneMinusU * rPrev + u * rCurr) * volumeFactor;
+
+                px[i] = SVG_CENTER + r * COS_TABLE[i];
+                py[i] = SVG_CENTER + r * SIN_TABLE[i];
+            }
+
+            cookiePathEl.setAttribute('d', buildSmoothClosedSvgPath());
+        }
+
+        stepSimulation(INITIAL_WARMUP_MS, true);
+        renderCurrentState();
+
+        // =====================================================================
+        // 2. ВЕРТИКАЛЬНЫЙ СТЕК СЛОВ GOOGLE SANS FLEX WAVE
+        // =====================================================================
+        const WAVE_WORDS = [
+            "i love you :3",
+            "u r so cute <3",
+            "meow meow meow",
+            "blublub tebya ;3",
+            "bebyaka :333",
+            "bebebebebe"
+        ];
+
+        const HOLD_WORDS = [
+            "ypa :3",
+            "bebyaka zajimaka",
+            "bububebebe",
+            "bom bom",
+            "nom nom",
+            "i love u <3"
+        ];
+
+        const PALETTE_EXPRESSIVE = [
+            [255, 119, 176],
+            [184, 132, 255],
+            [110, 198, 255],
+            [244, 162, 216]
+        ];
+
+        const BASE_INK = [84, 78, 98];
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function getWaveColor(t, paletteIndex) {
+            const accent = PALETTE_EXPRESSIVE[paletteIndex % PALETTE_EXPRESSIVE.length];
+            const colorMix = Math.pow(t, 1.35);
+            const r = Math.round(lerp(BASE_INK[0], accent[0], colorMix));
+            const g = Math.round(lerp(BASE_INK[1], accent[1], colorMix));
+            const b = Math.round(lerp(BASE_INK[2], accent[2], colorMix));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        const waveStack = document.getElementById('wave-stack');
+        const wavyWrapper = document.getElementById('wavy-wrapper');
+        const textProbe = document.getElementById('text-probe');
+
+        const VISIBLE_ROWS = 5;
+        let rowPool = [];
+        let rowHeight = 40;
+        let computedFontSize = 36;
+
+        function buildWaveStack() {
+            waveStack.innerHTML = '';
+            rowPool = [];
+
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            const allWords = [...WAVE_WORDS, ...HOLD_WORDS];
+            let maxProbeWidth = 100;
+            for (const word of allWords) {
+                textProbe.textContent = word;
+                const w = textProbe.getBoundingClientRect().width;
+                if (w > maxProbeWidth) maxProbeWidth = w;
+            }
+
+            const safeProbeWidth = maxProbeWidth * 1.05;
+            const maxShiftX = Math.min(16, vw * 0.028);
+            const sidePadding = vw < 640 ? 24 : 48;
+            const availableWidth = Math.max(140, vw - sidePadding - maxShiftX * 2);
+
+            const fitByWidth = (availableWidth / safeProbeWidth) * 100;
+            const maxByHeight = vh * 0.056;
+
+            computedFontSize = Math.max(20, Math.min(fitByWidth, maxByHeight));
+            rowHeight = computedFontSize * 0.96;
+
+            waveStack.style.fontSize = `${computedFontSize.toFixed(2)}px`;
+            waveStack.style.height = `${(rowHeight * VISIBLE_ROWS).toFixed(2)}px`;
+
+            const poolSize = VISIBLE_ROWS + 2;
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < poolSize; i++) {
+                const el = document.createElement('div');
+                el.className = 'wave-row google-sans-flex-wave';
+                el.style.height = `${rowHeight.toFixed(2)}px`;
+                fragment.appendChild(el);
+                rowPool.push({
+                    el,
+                    lastText: '',
+                    lastFvs: '',
+                    lastColor: ''
+                });
+            }
+            waveStack.appendChild(fragment);
+        }
+
+        // =====================================================================
+        // 3. ИНТЕРАКТИВНОЕ УДЕРЖАНИЕ MD3 COOKIE И ВОЛНИСТЫЙ ПРОГРЕСС
+        // =====================================================================
+        const cookieBtn = document.getElementById('cookie-btn');
+        const heartsArena = document.getElementById('hearts-arena');
+        const heartPinkEl = document.getElementById('heart-pink');
+        const heartBlueEl = document.getElementById('heart-blue');
+
+        let isHolding = false;
+        let isCompleted = false;
+        let progress = 0;
+        let cookieAngle = 0;
+        let angularVelocity = 0;
+        let cookieScale = 1;
+        let scaleVelocity = 0;
+
+        let verticalScroll = 0;
+        let waveFlowPhase = 0;
+        let waveAmpFactor = 0;
+
+        // Физика перетягивания, пружинного возврата и жидкостного смешивания двух сердечек
+        const heartsState = {
+            pink: { x: -94, y: 0, vx: 0, vy: 0, scale: 1, dragging: false, pointerId: null, offsetX: 0, offsetY: 0 },
+            blue: { x: 94, y: 0, vx: 0, vy: 0, scale: 1, dragging: false, pointerId: null, offsetX: 0, offsetY: 0 },
+            blend: 0,
+            alpha: 0
+        };
+
+        function setupHeartDrag(el, key) {
+            const state = heartsState[key];
+
+            el.addEventListener('pointerdown', (e) => {
+                if (!isCompleted) return;
+                e.preventDefault();
+                el.setPointerCapture(e.pointerId);
+                state.dragging = true;
+                state.pointerId = e.pointerId;
+                state.vx = 0;
+                state.vy = 0;
+                state.offsetX = e.clientX - state.x;
+                state.offsetY = e.clientY - state.y;
+
+                heartPinkEl.style.zIndex = key === 'pink' ? '12' : '10';
+                heartBlueEl.style.zIndex = key === 'blue' ? '12' : '10';
+            });
+
+            el.addEventListener('pointermove', (e) => {
+                if (!state.dragging || e.pointerId !== state.pointerId) return;
+                const maxX = Math.min(window.innerWidth * 0.42, 260);
+                const maxY = Math.min(window.innerHeight * 0.40, 260);
+                const nextX = Math.max(-maxX, Math.min(maxX, e.clientX - state.offsetX));
+                const nextY = Math.max(-maxY, Math.min(maxY, e.clientY - state.offsetY));
+
+                state.vx = (nextX - state.x) * 18;
+                state.vy = (nextY - state.y) * 18;
+                state.x = nextX;
+                state.y = nextY;
+            });
+
+            const release = (e) => {
+                if (!state.dragging) return;
+                if (e.pointerId !== undefined && e.pointerId !== state.pointerId) return;
+                state.dragging = false;
+                state.pointerId = null;
+
+                // При сближении капли мягко притягиваются поверхностным натяжением в единое фиолетовое сердце
+                const dx = heartsState.blue.x - heartsState.pink.x;
+                const dy = heartsState.blue.y - heartsState.pink.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < 96) {
+                    const midX = (heartsState.pink.x + heartsState.blue.x) * 0.5;
+                    const midY = (heartsState.pink.y + heartsState.blue.y) * 0.5;
+                    heartsState.pink.vx += (midX - 12 - heartsState.pink.x) * 10;
+                    heartsState.pink.vy += (midY - heartsState.pink.y) * 10;
+                    heartsState.blue.vx += (midX + 12 - heartsState.blue.x) * 10;
+                    heartsState.blue.vy += (midY - heartsState.blue.y) * 10;
+                }
+            };
+
+            el.addEventListener('pointerup', release);
+            el.addEventListener('pointercancel', release);
+        }
+
+        setupHeartDrag(heartPinkEl, 'pink');
+        setupHeartDrag(heartBlueEl, 'blue');
+
+        function updateHeartsPhysicsAndRender(dt) {
+            if (!isCompleted) {
+                renderCompositeFrame(0, 0, 0, 1, 0, 0, 1, 0);
+                return;
+            }
+
+            heartsState.alpha = Math.min(1, heartsState.alpha + dt * 2.4);
+
+            const p = heartsState.pink;
+            const b = heartsState.blue;
+
+            if (!p.dragging) {
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vx *= Math.exp(-9.5 * dt);
+                p.vy *= Math.exp(-9.5 * dt);
+            }
+            if (!b.dragging) {
+                b.x += b.vx * dt;
+                b.y += b.vy * dt;
+                b.vx *= Math.exp(-9.5 * dt);
+                b.vy *= Math.exp(-9.5 * dt);
+            }
+
+            const targetPinkScale = p.dragging ? 1.12 : 1.0;
+            const targetBlueScale = b.dragging ? 1.12 : 1.0;
+            p.scale += (targetPinkScale - p.scale) * (1 - Math.exp(-16 * dt));
+            b.scale += (targetBlueScale - b.scale) * (1 - Math.exp(-16 * dt));
+
+            const dist = Math.hypot(b.x - p.x, b.y - p.y);
+            const rawBlend = Math.max(0, Math.min(1, 1 - (dist - 16) / 156));
+            const smoothBlend = rawBlend * rawBlend * (3 - 2 * rawBlend);
+            heartsState.blend += (smoothBlend - heartsState.blend) * (1 - Math.exp(-14 * dt));
+
+            // Синхронизируем невидимые зоны захвата с позицией сердечек
+            heartPinkEl.style.transform = `translate3d(${p.x.toFixed(2)}px, ${p.y.toFixed(2)}px, 0)`;
+            heartBlueEl.style.transform = `translate3d(${b.x.toFixed(2)}px, ${b.y.toFixed(2)}px, 0)`;
+
+            // Переводим экранные координаты центра в WebGL-пиксели (Y снизу вверх)
+            const arenaRect = heartsArena.getBoundingClientRect();
+            const dpr = glCanvas.width / Math.max(1, window.innerWidth);
+            const centerX = (arenaRect.left + arenaRect.width * 0.5) * dpr;
+            const centerY = glCanvas.height - (arenaRect.top + arenaRect.height * 0.5) * dpr;
+
+            const pulse = heartsState.blend > 0.7 ? Math.sin(performance.now() * 0.0045) * 0.03 * heartsState.blend : 0;
+            const baseHeartScale = 76 * dpr;
+
+            const p1X = centerX + p.x * dpr;
+            const p1Y = centerY - p.y * dpr;
+            const s1 = baseHeartScale * (p.scale + pulse);
+
+            const p2X = centerX + b.x * dpr;
+            const p2Y = centerY - b.y * dpr;
+            const s2 = baseHeartScale * (b.scale + pulse);
+
+            renderCompositeFrame(heartsState.alpha, p1X, p1Y, s1, p2X, p2Y, s2, heartsState.blend);
+        }
+
+        function activateLiquidHeartsFinale() {
+            // Скрываем кнопку Cookie, волну текста и шкалу прогресса — остаются только фон и сердечки
+            cookieBtn.classList.add('is-hidden');
+            waveStack.classList.add('is-hidden');
+            wavyWrapper.classList.add('is-hidden');
+            heartsArena.classList.add('is-active');
+
+            heartsState.pink.x = -94;
+            heartsState.pink.y = 0;
+            heartsState.blue.x = 94;
+            heartsState.blue.y = 0;
+            heartsState.blend = 0;
+            heartsState.alpha = 0.02;
+        }
+
+        function startHold(e) {
+            if (e.button !== undefined && e.button !== 0) return;
+            if (isCompleted) return;
+            isHolding = true;
+        }
+
+        function endHold() {
+            if (!isHolding) return;
+            isHolding = false;
+        }
+
+        cookieBtn.addEventListener('pointerdown', (e) => {
+            cookieBtn.setPointerCapture(e.pointerId);
+            startHold(e);
+        });
+        cookieBtn.addEventListener('pointerup', endHold);
+        cookieBtn.addEventListener('pointercancel', endHold);
+        cookieBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+        window.addEventListener('blur', endHold);
+
+        // =====================================================================
+        // 4. ОТРИСОВКА MD3 LINEAR WAVY PROGRESS INDICATOR (БЕЗ НЕОНА)
+        // =====================================================================
+        const canvas = document.getElementById('wavy-canvas');
+        const ctx = canvas.getContext('2d');
+        let canvasWidth = 340;
+        let canvasHeight = 22;
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            canvasWidth = Math.max(120, rect.width);
+            canvasHeight = Math.max(20, rect.height);
+            canvas.width = Math.round(canvasWidth * dpr);
+            canvas.height = Math.round(canvasHeight * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        // =====================================================================
+        // 5. ГЛАВНЫЙ ЦИКЛ АНИМАЦИИ
+        // =====================================================================
+        let lastFrameTime = performance.now();
+
+        function drawLinearWavyProgress(prog, flowPhase, ampFactor) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            const centerY = canvasHeight / 2;
+            const strokeWidth = 5;
+            const padX = strokeWidth;
+            const usableWidth = canvasWidth - padX * 2;
+            const activeWidth = usableWidth * Math.max(0, Math.min(1, prog));
+            const gap = 8;
+
+            const trackStart = prog > 0.005 ? padX + activeWidth + gap : padX;
+            const trackEnd = padX + usableWidth;
+
+            if (trackEnd > trackStart) {
+                ctx.beginPath();
+                ctx.lineCap = 'round';
+                ctx.lineWidth = strokeWidth;
+                ctx.strokeStyle = 'rgba(216, 180, 254, 0.22)';
+                ctx.moveTo(trackStart, centerY);
+                ctx.lineTo(trackEnd, centerY);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.fillStyle = '#ff77b0';
+                ctx.arc(trackEnd, centerY, strokeWidth * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            if (activeWidth > 0.5) {
+                const wavelength = 28;
+                const maxAmplitude = 4.2;
+                const edgeTaper = Math.sin(Math.min(1, prog) * Math.PI);
+                const currentAmp = maxAmplitude * ampFactor * edgeTaper;
+
+                ctx.beginPath();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = strokeWidth;
+                ctx.strokeStyle = '#ff77b0';
+
+                const step = 1.5;
+                for (let x = 0; x <= activeWidth; x += step) {
+                    const px = padX + x;
+                    const tipFade = Math.min(1, x / 10, (activeWidth - x) / 10);
+                    const y = centerY + Math.sin((x / wavelength) * Math.PI * 2 - flowPhase) * currentAmp * Math.max(0, tipFade);
+                    if (x === 0) {
+                        ctx.moveTo(px, y);
+                    } else {
+                        ctx.lineTo(px, y);
+                    }
+                }
+                ctx.lineTo(padX + activeWidth, centerY);
+                ctx.stroke();
+            }
+        }
+
+        const assignedWords = new Map();
+        let wordCursor = 0;
+        let lastMode = 'idle';
+
+        function getWordForRow(logicalIndex, mode) {
+            if (mode !== lastMode) {
+                wordCursor = 0;
+                lastMode = mode;
+            }
+            if (!assignedWords.has(logicalIndex)) {
+                const dict = mode === 'hold' ? HOLD_WORDS : WAVE_WORDS;
+                const word = dict[wordCursor % dict.length];
+                wordCursor++;
+                assignedWords.set(logicalIndex, word);
+            }
+            return assignedWords.get(logicalIndex);
+        }
+
+        function animate(now) {
+            const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+            lastFrameTime = now;
+
+            if (isHolding && !isCompleted) {
+                // Загрузка замедлена в 3 раза (0.42 / 3 = 0.14 в секунду -> ~7.1 секунды удержания)
+                progress = Math.min(1, progress + dt * 0.14);
+                const targetVel = 165;
+                angularVelocity += (targetVel - angularVelocity) * (1 - Math.exp(-7 * dt));
+
+                if (progress >= 1 && !isCompleted) {
+                    isCompleted = true;
+                    isHolding = false;
+                    scaleVelocity = 2.4;
+                    angularVelocity = 320;
+                    activateLiquidHeartsFinale();
+                }
+            } else {
+                angularVelocity *= Math.exp(-4.5 * dt);
+                if (!isCompleted && progress > 0) {
+                    progress = Math.max(0, progress - dt * 0.25);
+                }
+            }
+
+            cookieAngle = (cookieAngle + angularVelocity * dt) % 360;
+
+            const targetScale = isHolding ? 0.92 : 1.0;
+            const force = (targetScale - cookieScale) * 260;
+            scaleVelocity = (scaleVelocity + force * dt) * Math.exp(-18 * dt);
+            cookieScale += scaleVelocity * dt;
+
+            if (!isCompleted) {
+                cookieBtn.style.transform = `scale(${cookieScale.toFixed(4)})`;
+                cookiePathEl.setAttribute('fill', isHolding ? '#ff8abb' : '#ff77b0');
+
+                stepSimulation(dt * 1000, isHolding);
+                renderCurrentState();
+
+                const verticalSpeed = isHolding ? rowHeight * 1.45 : rowHeight * 0.68;
+                verticalScroll += verticalSpeed * dt;
+
+                const scrollUnits = verticalScroll / rowHeight;
+                const baseRowIndex = Math.floor(scrollUnits);
+                const fracOffset = scrollUnits - baseRowIndex;
+                const centerSlotOffset = VISIBLE_ROWS * 0.5 + 0.5;
+                const maxShiftX = Math.min(14, window.innerWidth * 0.024);
+                const currentMode = isHolding ? 'hold' : 'idle';
+
+                for (const key of assignedWords.keys()) {
+                    if (key < baseRowIndex - 3) {
+                        assignedWords.delete(key);
+                    }
+                }
+
+                for (let slot = 0; slot < rowPool.length; slot++) {
+                    const item = rowPool[slot];
+                    const logicalIndex = baseRowIndex + slot - 1;
+                    const y = (slot - 1 - fracOffset) * rowHeight;
+
+                    const word = getWordForRow(logicalIndex, currentMode);
+                    if (word !== item.lastText) {
+                        item.el.textContent = word;
+                        item.lastText = word;
+                    }
+
+                    const distFromCenter = (slot - fracOffset) - centerSlotOffset;
+                    const lensAngle = Math.max(-Math.PI, Math.min(Math.PI, distFromCenter * 1.25));
+
+                    const wave = (Math.cos(lensAngle) + 1) * 0.5;
+                    const smoothWave = wave * wave * (3 - 2 * wave);
+
+                    const weight = Math.round(lerp(220, 950, smoothWave) / 4) * 4;
+                    const wdth = Math.round(lerp(62, 151, smoothWave));
+                    const rond = Math.round(lerp(0, 100, smoothWave));
+                    const slnt = (Math.round(Math.sin(lensAngle) * -4.5 * 2) / 2).toFixed(1);
+                    const shiftX = Math.sin(lensAngle) * maxShiftX;
+
+                    const fvs = `"wght" ${weight}, "slnt" ${slnt}, "wdth" ${wdth}, "ROND" ${rond}`;
+                    if (fvs !== item.lastFvs) {
+                        item.el.style.fontVariationSettings = fvs;
+                        item.lastFvs = fvs;
+                    }
+
+                    const colorCycle = Math.abs(logicalIndex);
+                    const color = getWaveColor(smoothWave, colorCycle);
+                    if (color !== item.lastColor) {
+                        item.el.style.color = color;
+                        item.lastColor = color;
+                    }
+
+                    item.el.style.transform = `translate3d(${shiftX.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+                }
+
+                const targetAmp = isHolding ? 1.0 : (progress > 0.01 ? 0.6 : 0.0);
+                waveAmpFactor += (targetAmp - waveAmpFactor) * (1 - Math.exp(-8 * dt));
+                waveFlowPhase += (isHolding ? 7.5 : 3.2) * dt;
+
+                drawLinearWavyProgress(progress, waveFlowPhase, waveAmpFactor);
+            }
+
+            updateHeartsPhysicsAndRender(dt);
+
+            requestAnimationFrame(animate);
+        }
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                bakeSessionWallpaperTexture();
+                buildWaveStack();
+                resizeCanvas();
+            }, 100);
+        });
+
+        window.onload = () => {
+            bakeSessionWallpaperTexture();
+            buildWaveStack();
+            resizeCanvas();
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(() => {
+                    buildWaveStack();
+                });
+            }
+            lastFrameTime = performance.now();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>
